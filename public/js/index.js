@@ -1,4 +1,5 @@
 import {hyperbolicShader} from './shaders/hyperbolicShader.js'
+import {dataMaterialShader} from './shaders/dataMaterialShader.js'
 import {vec3, vec4, mat4} from "./gl-matrix/src/index";
 
 
@@ -12,13 +13,16 @@ let mouse	= {x : 0, y : 0}
 let lastTimeMsec = 0;
 let mapQuad;
 let Controls = function(){
-    this.calls = 0.2;
-    this.latitude = 0.2;
-    this.longitude = 0.2;
-    this.time = 2;
+    this.calls = 10;
+    this.latitude = 1;
+    this.longitude = 1;
+    this.created = 0;
+    this.closed = 10;
 }
-
+let data = [];
+let dataMaterial;
 let hbg;
+let dataMaterials = [];
 
 fetch("http://localhost:3000/data").then((response)=>{
     response.json().then((data)=>{
@@ -30,19 +34,22 @@ fetch("http://localhost:3000/data").then((response)=>{
 
 function init(data) {
     let loader = new THREE.FontLoader();
+    
     /* Setup gui */
     {
         hbg = new Controls()
         let gui = new dat.GUI();
-        const calls = gui.add(hbg, "calls", 0.0, 1.0);
+        const calls = gui.add(hbg, "calls", 0.1, 10.0);
         const latitude =gui.add(hbg, "latitude", 0.0, 1.0);
         const longitude =gui.add(hbg, "longitude", 0.0, 1.0);
-        const time =gui.add(hbg, "time", 0.0, 10.0);
+        const created =gui.add(hbg, "created", 0.0, 10.0);
+        const closed =gui.add(hbg, "closed", 0.0, 10.0);
 
-        calls.onChange((value)=>{hbg.calls = value})
-        latitude.onChange((value)=>{hbg.latitude = value})
-        longitude.onChange((value)=>{hbg.longitude = value})
-        time.onChange((value)=>{hbg.time = value})
+        calls.onFinishChange((value)=>{hbg.calls = value; reRender()})
+        latitude.onFinishChange((value)=>{hbg.latitude = value; reRender()})
+        longitude.onFinishChange((value)=>{hbg.longitude = value; reRender()})
+        created.onFinishChange((value)=>{hbg.created = value; reRender()})
+        closed.onFinishChange((value)=>{hbg.closed = value; reRender()})
     }
 
      /* Setup Renderer*/
@@ -61,8 +68,8 @@ function init(data) {
     {
         //camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
         camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-        camera.position.z = 800;
-        camera.position.y = 800;
+        camera.position.z = 1000;
+        camera.position.y = 400;
 
     }
 
@@ -86,11 +93,12 @@ function init(data) {
             tDiffuse: {value: mapTexture}
         }
         
-        const basicMaterial = new THREE.MeshBasicMaterial({
-            map: mapTexture
+        const basicMaterial = new THREE.MeshLambertMaterial({
+            color: 0xff0000,
+            
         });
 
-        let dataMaterial = new THREE.MeshBasicMaterial({color:0x00ff00});
+        
         
     
     /* Setup geometry in scene */
@@ -98,54 +106,47 @@ function init(data) {
     var mapPlane = new THREE.PlaneBufferGeometry( 2048, 1024, 1, 1 );
     mapQuad = new THREE.Mesh( mapPlane, hyperbolicMaterial );
     mapQuad.rotation.x =  -Math.PI / 2;
-    mapQuad.rotation.z = 6.31;
+
+    var geometry = new THREE.BoxGeometry( 2048, 1024, 20 );
+    var material = new THREE.MeshBasicMaterial( {color: 0x9fccf5} );
+    var cube = new THREE.Mesh( geometry, material );
+    cube.position.y = -11;
+    cube.rotation.x = -Math.PI / 2;
+    colorScene.add( cube );
+    
 
     colorScene.add(mapQuad);
 
     {        
         for ( var i = 0; i < data.length; i ++ ) {
-            //if(data[i].num_calls<hbg.calls && data[i].latitude<hbg.latitude && data[i].longitude<hbg.longitude && data[i]<hbg.time){
-                loader.load( 'fonts/helvetiker_regular.typeface.json', function ( font ) {
+            let scale = 40;
+            var geometry = new THREE.CylinderBufferGeometry( 2, 2, data[i].num_calls*scale, 8, 1 );
+            
+            // let dataMaterial = new THREE.ShaderMaterial(dataMaterialShader);
+            // dataMaterial.uniforms.visible = {value: 1.0};
+            // dataMaterial.uniforms.color = {value: new THREE.Vector3().fromArray([1.0,0.0,0.0])};
 
-                    var fontGeometry = new THREE.TextGeometry( data[i].latitude+' '+data[i].longitude, {
-                        font: font,
-                        size: 80,
-                        height: 5,
-                        curveSegments: 12,
-                        bevelEnabled: true,
-                        bevelThickness: 10,
-                        bevelSize: 8,
-                        bevelOffset: 0,
-                        bevelSegments: 5
-                    } );
+            // dataMaterials.push(dataMaterial);
+            var mesh = new THREE.Mesh( geometry, basicMaterial );
+            
+            mesh.position.x = (data[i].longitude * 2048)-1024;
+            mesh.position.y = data[i].num_calls*(scale/2);//( Math.random() - 0.5 ) * 1000; //
+            mesh.position.z = (-data[i].latitude * 1024)+512;
+            
+            mesh.userData.isMyCylinder = true;
+            mesh.userData.index = i;
+            mesh.userData.calls = data[i].num_calls;
+            mesh.userData.longitude = data[i].longitude;
+            mesh.userData.latitude = data[i].latitude;
+            mesh.userData.created = data[i].created;
+            mesh.userData.closed = data[i].closed;
 
-                    fontGeometry.position.x = (data[i].longitude * 2048)-1024;
-                    fontGeometry.position.y = data[i].num_calls*20;//( Math.random() - 0.5 ) * 1000; //
-                    fontGeometry.position.z = (data[i].latitude * 1024)-512;
-                    
-                    colorScene.add(fontGeometry);
-                } );
-                console.log((data[i].latitude*(40.915618 - 40.499275)+40.499275) +' '+(data[i].longitude*(-73.465838-(-74.463894))+(-74.463894)));
-                console.log("Adding data")
-                var geometry = new THREE.CylinderBufferGeometry( 5, 5, data[i].num_calls*20, 8, 1 );
-                
-                var mesh = new THREE.Mesh( geometry, dataMaterial );
-                
-                mesh.position.x = (data[i].longitude * 2048)-1024;
-                mesh.position.y = data[i].num_calls*10;//( Math.random() - 0.5 ) * 1000; //
-                mesh.position.z = (-data[i].latitude * 1024)+512;
-                
-                mesh.updateMatrix();
-                mesh.matrixAutoUpdate = false;
-                
-                colorScene.add( mesh );
-            //}
+            mesh.updateMatrix();
+            //mesh.matrixAutoUpdate = false;
+            
+            colorScene.add( mesh );
         }
-
-
     }
-
-
     /* Add lights */
     {
         var light = new THREE.DirectionalLight( 0xffffff );
@@ -175,25 +176,6 @@ function init(data) {
         controls.dynamicDampingFactor = 0.3;
         controls.keys = [ 65, 83, 68 ];
         controls.addEventListener( 'change', render );
-
-        
-        // var controlsEnabled	= true
-        //     document.addEventListener('mousemove', function(event){
-        //         // honor controlsEnabled
-        //         if(controlsEnabled === false) return
-            
-        //         mouse.x	= (event.clientX / window.innerWidth ) - 0.5
-        //         mouse.y	= (event.clientY / window.innerHeight) - 0.5
-        //     }, false)
-        //     updateFcts.push(function(delta, now){
-        //         camera.position.x += (mouse.x*5 - camera.position.x) * (delta*3)
-        //         camera.position.y += (mouse.y*5 - camera.position.y) * (delta*3)
-        //         camera.lookAt( colorScene.position )
-        //     })
-
-        //     renderer.domElement.addEventListener('click', function(event){
-        //         controlsEnabled	= controlsEnabled === true ? false : true
-        // }, false)
     }
     /* Stats */
     {
@@ -220,23 +202,35 @@ function animate(nowMsec) {
     requestAnimationFrame( animate );
     //delta = clock.getElapsedTime();
     controls.update();
-    
     render(deltaMsec/1000, nowMsec/1000);
     stats.update();
 }
 
 function render(delta, now) {
-    hyperbolicMaterial.uniforms.uK = {value: hbg.uK};
-    hyperbolicMaterial.uniforms.uTransX = {value: hbg.uTransX};
-    hyperbolicMaterial.uniforms.uTransY = {value: hbg.uTransY};
-    hyperbolicMaterial.uniforms.uXcntr = {value: hbg.uXcntr};
-    hyperbolicMaterial.uniforms.uYcntr = {value: hbg.uYcntr};
-    hyperbolicMaterial.uniforms.uScale = {value: hbg.uScale};
-    //mapQuad.rotation.z +=  0.005;
-    console.log("Rotation "+mapQuad.rotation.z);
 
     renderer.setRenderTarget(null);
     renderer.clear()
     renderer.render(colorScene, camera);
     //Finally, draw to the screen
+}
+
+function reRender(){
+    console.log("Rerendering"); 
+    colorScene.traverse((obj)=>{
+        if(obj.isMesh){
+            if(obj.userData.isMyCylinder){
+                const callScaled = hbg.calls;
+                const longitudeScaled = hbg.longitude;
+                const latitudeScaled = hbg.latitude;
+                const createdScaled = hbg.created;
+                const closedScaled = hbg.closed;
+                debugger;
+                if(obj.userData.calls <= callScaled && obj.userData.longitude <= longitudeScaled && obj.userData.latitude <= latitudeScaled && (obj.userData.created >= createdScaled && obj.userData.closed <= closedScaled)){
+                    obj.visible = true;
+                }else {
+                    obj.visible = false;
+                }
+            }
+        }
+    })
 }
