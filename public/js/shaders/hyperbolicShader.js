@@ -7,7 +7,7 @@ const hyperbolicShader = {
 
         void main(){
             vUv = uv;
-            gl_Position = vec4(position, 1.0);
+            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
         }
     `,
     fragmentShader: `
@@ -41,7 +41,7 @@ const hyperbolicShader = {
                     texture2D(tDiffuse, vUv+vec2(j));
                 } 
             }
-            gl_FragColor = texture2D(tDiffuse, pos2);
+            gl_FragColor = texture2D(tDiffuse, vUv);
         }
     `
 }

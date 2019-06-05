@@ -10,37 +10,39 @@ let colorScene, camera, hyperbolicMaterial;
 let renderer, controls, stats;
 let mouse	= {x : 0, y : 0}
 let lastTimeMsec = 0;
+let mapQuad;
 let Controls = function(){
-    this.uK = 1.0;
-    this.uTransX = 0.5;
-    this.uTransY = 0.5;
-    this.uXcntr = 0.5;
-    this.uYcntr = 0.5;
-    this.uScale = 1.0;
+    this.calls = 0.2;
+    this.latitude = 0.2;
+    this.longitude = 0.2;
+    this.time = 2;
 }
 
 let hbg;
 
-init();
-animate();
-function init() {
+fetch("http://localhost:3000/data").then((response)=>{
+    response.json().then((data)=>{
+        init(data);
+        animate();
+    })
+})
+
+
+function init(data) {
+    let loader = new THREE.FontLoader();
     /* Setup gui */
     {
         hbg = new Controls()
         let gui = new dat.GUI();
-        const cK = gui.add(hbg, "uK", 0.1, 1.0);
-        const cTransX = gui.add(hbg, "uTransX", 0.0, 1.0);
-        const cTransY =gui.add(hbg, "uTransY", 0.0, 1.0);
-        const cXcntr =gui.add(hbg, "uXcntr", 0.0, 1.0);
-        const cYcntr =gui.add(hbg, "uYcntr", 0.0, 1.0);
-        const cScale =gui.add(hbg, "uScale", 0.1, 1.0);
+        const calls = gui.add(hbg, "calls", 0.0, 1.0);
+        const latitude =gui.add(hbg, "latitude", 0.0, 1.0);
+        const longitude =gui.add(hbg, "longitude", 0.0, 1.0);
+        const time =gui.add(hbg, "time", 0.0, 10.0);
 
-        cTransX.onChange((value)=>{hbg.uTransX = value})
-        cTransY.onChange((value)=>{hbg.cTransY = value})
-        cXcntr.onChange((value)=>{hbg.cXcntr = value})
-        cYcntr.onChange((value)=>{hbg.cYcntr = value})
-        cScale.onChange((value)=>{hbg.cScale = value})
-        cK.onChange((value)=>{hbg.cK = value})
+        calls.onChange((value)=>{hbg.calls = value})
+        latitude.onChange((value)=>{hbg.latitude = value})
+        longitude.onChange((value)=>{hbg.longitude = value})
+        time.onChange((value)=>{hbg.time = value})
     }
 
      /* Setup Renderer*/
@@ -57,7 +59,11 @@ function init() {
 
     /* Setup cameras */
     {
-        camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+        //camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+        camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+        camera.position.z = 800;
+        camera.position.y = 800;
+
     }
 
     /* Setup scenes */
@@ -83,14 +89,61 @@ function init() {
         const basicMaterial = new THREE.MeshBasicMaterial({
             map: mapTexture
         });
+
+        let dataMaterial = new THREE.MeshBasicMaterial({color:0x00ff00});
         
     
     /* Setup geometry in scene */
     
-    var mapPlane = new THREE.PlaneBufferGeometry( 2, 2 );
-    var mapQuad = new THREE.Mesh( mapPlane, hyperbolicMaterial );
+    var mapPlane = new THREE.PlaneBufferGeometry( 2048, 1024, 1, 1 );
+    mapQuad = new THREE.Mesh( mapPlane, hyperbolicMaterial );
+    mapQuad.rotation.x =  -Math.PI / 2;
+    mapQuad.rotation.z = 6.31;
 
     colorScene.add(mapQuad);
+
+    {        
+        for ( var i = 0; i < data.length; i ++ ) {
+            //if(data[i].num_calls<hbg.calls && data[i].latitude<hbg.latitude && data[i].longitude<hbg.longitude && data[i]<hbg.time){
+                loader.load( 'fonts/helvetiker_regular.typeface.json', function ( font ) {
+
+                    var fontGeometry = new THREE.TextGeometry( data[i].latitude+' '+data[i].longitude, {
+                        font: font,
+                        size: 80,
+                        height: 5,
+                        curveSegments: 12,
+                        bevelEnabled: true,
+                        bevelThickness: 10,
+                        bevelSize: 8,
+                        bevelOffset: 0,
+                        bevelSegments: 5
+                    } );
+
+                    fontGeometry.position.x = (data[i].longitude * 2048)-1024;
+                    fontGeometry.position.y = data[i].num_calls*20;//( Math.random() - 0.5 ) * 1000; //
+                    fontGeometry.position.z = (data[i].latitude * 1024)-512;
+                    
+                    colorScene.add(fontGeometry);
+                } );
+                console.log((data[i].latitude*(40.915618 - 40.499275)+40.499275) +' '+(data[i].longitude*(-73.465838-(-74.463894))+(-74.463894)));
+                console.log("Adding data")
+                var geometry = new THREE.CylinderBufferGeometry( 5, 5, data[i].num_calls*20, 8, 1 );
+                
+                var mesh = new THREE.Mesh( geometry, dataMaterial );
+                
+                mesh.position.x = (data[i].longitude * 2048)-1024;
+                mesh.position.y = data[i].num_calls*10;//( Math.random() - 0.5 ) * 1000; //
+                mesh.position.z = (-data[i].latitude * 1024)+512;
+                
+                mesh.updateMatrix();
+                mesh.matrixAutoUpdate = false;
+                
+                colorScene.add( mesh );
+            //}
+        }
+
+
+    }
 
 
     /* Add lights */
@@ -171,6 +224,7 @@ function animate(nowMsec) {
     render(deltaMsec/1000, nowMsec/1000);
     stats.update();
 }
+
 function render(delta, now) {
     hyperbolicMaterial.uniforms.uK = {value: hbg.uK};
     hyperbolicMaterial.uniforms.uTransX = {value: hbg.uTransX};
@@ -178,6 +232,8 @@ function render(delta, now) {
     hyperbolicMaterial.uniforms.uXcntr = {value: hbg.uXcntr};
     hyperbolicMaterial.uniforms.uYcntr = {value: hbg.uYcntr};
     hyperbolicMaterial.uniforms.uScale = {value: hbg.uScale};
+    //mapQuad.rotation.z +=  0.005;
+    console.log("Rotation "+mapQuad.rotation.z);
 
     renderer.setRenderTarget(null);
     renderer.clear()
