@@ -112,6 +112,12 @@ function init(data) {
 
     var geometry = new THREE.BoxGeometry( 2048, 1024, 20 );
     var material = new THREE.MeshBasicMaterial( {color: 0x9fccf5} );
+    var material_250 = new THREE.MeshBasicMaterial( {color: 0x7d0098} );
+    var material_500 = new THREE.MeshBasicMaterial( {color: 0x0e26ff} );
+    var material_750 = new THREE.MeshBasicMaterial( {color: 0x05ffc7} );
+    var material_1000 = new THREE.MeshBasicMaterial( {color: 0xfed501} );
+    var material_1250 = new THREE.MeshBasicMaterial( {color: 0xfe0000} );
+    var material_1500 = new THREE.MeshBasicMaterial( {color: 0x8a0000} );
     var cube = new THREE.Mesh( geometry, material );
     cube.position.y = -11;
     cube.rotation.x = -Math.PI / 2;
@@ -123,34 +129,44 @@ function init(data) {
     {        
         for ( var i = 0; i < data.length; i ++ ) {
             let scale = 40;
-            const maxDiff = 0.9484706958028681;
-            //const mixRatio = Math.max(0.002, (data[i].closed - data[i].created))/maxDiff;
-            const closed_max = 31702097.0;
-            const og_created = (data[i].created / 10)*closed_max;
-            const og_closed = (data[i].closed / 10)*closed_max;
-            const mixRatio = og_closed*60 - og_created*60;
-            debugger;
-            console.log(mixRatio)
-            var geometry = new THREE.CylinderBufferGeometry( 2, 2, data[i].num_calls*scale, 8, 1 );
-            gradientMaterial.uniforms.mixRatio = {value: mixRatio};
-            var mesh = new THREE.Mesh( geometry, gradientMaterial );
+            if(data[i].minutes > 0){
+                const maxDiff = 0.9484706958028681;
+                const mixRatio = Math.max(0.2, (data[i].closed - data[i].created))/maxDiff;
             
-            mesh.position.x = (data[i].longitude * 2048)-1024;
-            mesh.position.y = data[i].num_calls*(scale/2);//( Math.random() - 0.5 ) * 1000; //
-            mesh.position.z = (-data[i].latitude * 1024)+512;
-            
-            mesh.userData.isMyCylinder = true;
-            mesh.userData.index = i;
-            mesh.userData.calls = data[i].num_calls;
-            mesh.userData.longitude = data[i].longitude;
-            mesh.userData.latitude = data[i].latitude;
-            mesh.userData.created = data[i].created;
-            mesh.userData.closed = data[i].closed;
+                var geometry = new THREE.CylinderBufferGeometry( 2, 2, data[i].num_calls*scale, 8, 1 );
+                let currentMaterial = material_250;
+                if(data[i].minutes < 250){
+                    currentMaterial = material_250;
+                }else if(data[i].minutes < 500){
+                    currentMaterial = material_500;
+                }else if(data[i].minutes < 750){
+                    currentMaterial = material_750;
+                }else if(data[i].minutes < 1000){
+                    currentMaterial = material_1000;
+                }else if(data[i].minutes < 1250){
+                    currentMaterial = material_1250;
+                }else{
+                    currentMaterial = material_1500;
+                }
+                var mesh = new THREE.Mesh( geometry, currentMaterial );
+                
+                mesh.position.x = (data[i].longitude * 2048)-1024;
+                mesh.position.y = data[i].num_calls*(scale/2);//( Math.random() - 0.5 ) * 1000; //
+                mesh.position.z = (-data[i].latitude * 1024)+512;
+                
+                mesh.userData.isMyCylinder = true;
+                mesh.userData.index = i;
+                mesh.userData.calls = data[i].num_calls;
+                mesh.userData.longitude = data[i].longitude;
+                mesh.userData.latitude = data[i].latitude;
+                mesh.userData.created = data[i].created;
+                mesh.userData.closed = data[i].closed;
 
-            mesh.updateMatrix();
-            //mesh.matrixAutoUpdate = false;
-            
-            colorScene.add( mesh );
+                mesh.updateMatrix();
+                //mesh.matrixAutoUpdate = false;
+                
+                colorScene.add( mesh );
+            }
         }
     }
     /* Add lights */

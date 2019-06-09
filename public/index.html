@@ -6,6 +6,51 @@
 		<style>
 			body { margin: 0; }
 			canvas { width: 100vw; height: 100vh }
+			.legend{
+				display: flex;
+				flex-direction: column;
+				position: fixed;
+				bottom: 0;
+				right: 0;
+			}
+			.legend-row{
+				display: flex;
+				height: 25px;
+				width: 200px;
+			}
+			.color{
+				height:100%;
+				position: relative;
+				width: 20%;
+			}
+			.label{
+				display: flex;
+				background: #dadada;
+				color: #222;
+				height: 100%;
+				width: 80%;
+				justify-content: center;
+				align-items: center;
+				font-family: sans-serif;
+			}
+			._250{
+				background: #7d0098;
+			}
+			._500{
+				background: #0e26ff;
+			}
+			._750{
+				background: #05ffc7;
+			}
+			._1000{
+				background: #fed501;
+			}
+			._1250{
+				background: #fe0000;
+			}
+			._1500{
+				background: #8a0000;
+			}
 		</style>
 	</head>
 		<script src="js/three/three.js"></script>
@@ -26,6 +71,50 @@
 	<body>
 		<div id="container">
 		</div>
+		<div class="legend">
+			<div class="legend-row">
+				<div class="color _250">
+				</div>
+				<div class="label">
+					250 mins
+				</div>
+			</div>
+			<div class="legend-row">
+				<div class="color _500">
+				</div>
+				<div class="label">
+					500 mins
+				</div>
+			</div>
+			<div class="legend-row">
+				<div class="color _750">
+				</div>
+				<div class="label">
+					750 mins
+				</div>
+			</div>
+			<div class="legend-row">
+				<div class="color _1000">
+				</div>
+				<div class="label">
+					1000 mins
+				</div>
+			</div>
+			<div class="legend-row">
+				<div class="color _1250">
+				</div>
+				<div class="label">
+					1250 mins
+				</div>
+			</div>
+			<div class="legend-row">
+				<div class="color _1500">
+				</div>
+				<div class="label">
+					1500 mins
+				</div>
+			</div>
+		</div>>
 		<script src="dist/nyny.js"></script>	
 	</body>
 </html>
