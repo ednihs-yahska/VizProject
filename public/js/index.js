@@ -1,5 +1,6 @@
 import {hyperbolicShader} from './shaders/hyperbolicShader.js'
 import {dataMaterialShader} from './shaders/dataMaterialShader.js'
+import {gradientMaterialShader} from './shaders/gradientMaterialShader.js'
 import {vec3, vec4, mat4} from "./gl-matrix/src/index";
 
 
@@ -76,7 +77,7 @@ function init(data) {
     /* Setup scenes */
     {
         colorScene = new THREE.Scene();
-        colorScene.background = new THREE.Color( 0x000000 );
+        colorScene.background = new THREE.Color( 0xffffff );
     }
 
     /* Setup Material */
@@ -97,6 +98,8 @@ function init(data) {
             color: 0xff0000,
             
         });
+
+        const gradientMaterial = new THREE.ShaderMaterial(gradientMaterialShader)
 
         
         
@@ -120,14 +123,17 @@ function init(data) {
     {        
         for ( var i = 0; i < data.length; i ++ ) {
             let scale = 40;
+            const maxDiff = 0.9484706958028681;
+            //const mixRatio = Math.max(0.002, (data[i].closed - data[i].created))/maxDiff;
+            const closed_max = 31702097.0;
+            const og_created = (data[i].created / 10)*closed_max;
+            const og_closed = (data[i].closed / 10)*closed_max;
+            const mixRatio = og_closed*60 - og_created*60;
+            debugger;
+            console.log(mixRatio)
             var geometry = new THREE.CylinderBufferGeometry( 2, 2, data[i].num_calls*scale, 8, 1 );
-            
-            // let dataMaterial = new THREE.ShaderMaterial(dataMaterialShader);
-            // dataMaterial.uniforms.visible = {value: 1.0};
-            // dataMaterial.uniforms.color = {value: new THREE.Vector3().fromArray([1.0,0.0,0.0])};
-
-            // dataMaterials.push(dataMaterial);
-            var mesh = new THREE.Mesh( geometry, basicMaterial );
+            gradientMaterial.uniforms.mixRatio = {value: mixRatio};
+            var mesh = new THREE.Mesh( geometry, gradientMaterial );
             
             mesh.position.x = (data[i].longitude * 2048)-1024;
             mesh.position.y = data[i].num_calls*(scale/2);//( Math.random() - 0.5 ) * 1000; //
@@ -224,7 +230,6 @@ function reRender(){
                 const latitudeScaled = hbg.latitude;
                 const createdScaled = hbg.created;
                 const closedScaled = hbg.closed;
-                debugger;
                 if(obj.userData.calls <= callScaled && obj.userData.longitude <= longitudeScaled && obj.userData.latitude <= latitudeScaled && (obj.userData.created >= createdScaled && obj.userData.closed <= closedScaled)){
                     obj.visible = true;
                 }else {
