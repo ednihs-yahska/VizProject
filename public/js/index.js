@@ -25,7 +25,8 @@ let dataMaterial;
 let hbg;
 let dataMaterials = [];
 
-fetch("http://localhost:3000/data").then((response)=>{
+const dataEndpoint = "http://localhost:4000/data"
+fetch(dataEndpoint).then((response)=>{
     response.json().then((data)=>{
         init(data);
         animate();
