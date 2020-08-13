@@ -25,7 +25,7 @@ let dataMaterial;
 let hbg;
 let dataMaterials = [];
 
-const dataEndpoint = "http://localhost:4000/data"
+const dataEndpoint = "/data"
 fetch(dataEndpoint).then((response)=>{
     response.json().then((data)=>{
         init(data);
